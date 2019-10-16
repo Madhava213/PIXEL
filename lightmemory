@@ -1,10 +1,9 @@
-// This #include statement was automatically added by the Particle IDE.
-#include <neopixel.h>
+#include <Adafruit_Neopixel.h>
 
 
 #define PIXEL_PIN D1
 #define PIXEL_COUNT 64
-#define PIXEL_TYPE WS2812B
+#define PIXEL_TYPE (NEO_KHZ800 + NEO_RGB)
 
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(PIXEL_COUNT, PIXEL_PIN, PIXEL_TYPE);
 /* Matrix pixels defined as:
@@ -19,17 +18,18 @@ ROW 8: 56-63
 */
 
 //pixel colors:
+//order is g, r, b
 int white = strip.Color(150, 150, 150);
-int red  = strip.Color(80, 0, 4);
-int gold = strip.Color(60, 50, 5);
-int green = strip.Color(0, 80, 0);
+int red  = strip.Color(0, 80, 4);
+int gold = strip.Color(50, 60, 5);
+int green = strip.Color(80, 0, 0);
 int blue = strip.Color(0, 0, 128);
-int purple = strip.Color(150,0,150);
+int purple = strip.Color(0, 150, 150);
 int off = strip.Color(0, 0, 0);
-int r = 250, b = 0, g = 0;
+int r = 250, g = 0, b = 0;
 
 
-int score = 0;
+int score = 0; //we will keep this for a possible LED display
 
 //joystick pins:
 int vert = A0;
@@ -57,7 +57,6 @@ int pos = 35;
 
 //arrays:
 bool selectedSpace[64] = {false};
-bool randomPattern[64] = {false};
 
 bool easyPattern[8][8] = { //HI
     {0,0,0,0,0,0,0,0},
@@ -67,17 +66,6 @@ bool easyPattern[8][8] = { //HI
     {1,0,0,1,0,0,1,0},
     {1,0,0,1,0,0,1,0},
     {1,0,0,1,0,1,1,1},
-    {0,0,0,0,0,0,0,0},
-};
-
-bool eLetter[8][8] = {
-    {0,0,0,0,0,0,0,0},
-    {0,1,1,1,1,1,1,0},
-    {0,1,0,0,0,0,0,0},
-    {0,1,1,1,1,1,0,0},
-    {0,1,0,0,0,0,0,0},
-    {0,1,0,0,0,0,0,0},
-    {0,1,1,1,1,1,1,0},
     {0,0,0,0,0,0,0,0},
 };
 
@@ -92,17 +80,6 @@ bool mediumPattern[8][8] = { //capital omega
     {1,1,1,0,0,1,1,1},
 };
 
-bool mLetter[8][8] = {
-    {0,0,0,0,0,0,0,0},
-    {0,1,0,0,0,0,1,0},
-    {0,1,1,0,0,1,1,0},
-    {0,1,0,1,1,0,1,0},
-    {0,1,0,0,0,0,1,0},
-    {0,1,0,0,0,0,1,0},
-    {0,1,0,0,0,0,1,0},
-    {0,0,0,0,0,0,0,0},
-};
-
 bool hardPattern[8][8] = { //space invader alien
     {0,1,0,0,0,0,1,0},
     {0,0,1,0,0,1,0,0},
@@ -112,17 +89,6 @@ bool hardPattern[8][8] = { //space invader alien
     {1,0,1,1,1,1,0,1},
     {0,0,1,0,0,1,0,0},
     {0,1,1,0,0,1,1,0},
-};
-
-bool hLetter[8][8] = {
-    {0,0,0,0,0,0,0,0},
-    {0,1,0,0,0,0,1,0},
-    {0,1,0,0,0,0,1,0},
-    {0,1,1,1,1,1,1,0},
-    {0,1,0,0,0,0,1,0},
-    {0,1,0,0,0,0,1,0},
-    {0,1,0,0,0,0,1,0},
-    {0,0,0,0,0,0,0,0},
 };
 
 //for rainbow in endgame:
@@ -152,9 +118,6 @@ void setup() {
     
     pinMode(button,INPUT);
     
-    Particle.function("changeLevel", changeLevel);
-    Particle.variable("score",score);
-    
     Serial.begin(9600);
     
     strip.begin();
@@ -166,37 +129,9 @@ void setup() {
 
 //FUNCTIONS:
 //**********************************************//
-int changeLevel(String inputString){
-    if(inputString == "easy"){
-        finishCount = 0;
-        inGame = false;
-    } else if(inputString == "medium"){
-        finishCount = 1;
-        inGame = false;
-    } else if(inputString == "hard"){
-        finishCount = 2;
-        inGame = false;
-    } else if(inputString == "finished"){
-        endGame = true;
-        startNew = false;
-    }
-}
-
 void displayEasyPattern(){ //displays easyPattern array
     clearSelectedSpaces();
     int matrixPos = -1;
-    // for(int i = 0; i < 8; i++){
-    //     for(int j = 0; j < 8; j++){
-    //         matrixPos++;
-    //         if(eLetter[i][j]){
-    //             strip.setPixelColor(matrixPos,green);
-    //             strip.show();
-    //         }
-    //     }
-    // }
-    // delay(1000);
-    // clearGrid();
-    // matrixPos = -1;
     for(int i = 0; i < 8; i++){
         for(int j = 0; j < 8; j++){
             matrixPos++;
@@ -207,10 +142,7 @@ void displayEasyPattern(){ //displays easyPattern array
         }
     }
     delay(5000); //shorten time?
-    for(int i = 0; i < 64; i++){ //clears the pattern
-        strip.setPixelColor(i,off);
-        strip.show();
-    }
+    clearGrid();
     inGame = true; //player can now move
     finished = false; //player is not yet finished selecting
 }
@@ -218,18 +150,6 @@ void displayEasyPattern(){ //displays easyPattern array
 void displayMediumPattern(){ //displays mediumPattern array
     clearSelectedSpaces();
     int matrixPos = -1;
-    // for(int i = 0; i < 8; i++){
-    //     for(int j = 0; j < 8; j++){
-    //         matrixPos++;
-    //         if(mLetter[i][j]){
-    //             strip.setPixelColor(matrixPos,gold);
-    //             strip.show();
-    //         }
-    //     }
-    // }
-    // delay(1000);
-    // clearGrid();
-    // matrixPos = -1;
     for(int i = 0; i < 8; i++){
         for(int j = 0; j < 8; j++){
             matrixPos++;
@@ -240,10 +160,7 @@ void displayMediumPattern(){ //displays mediumPattern array
         }
     }
     delay(5000);
-    for(int i = 0; i < 64; i++){ //clears the pattern
-        strip.setPixelColor(i,off);
-        strip.show();
-    }
+    clearGrid();
     inGame = true; //player can now move
     finished = false; //player is not yet finished selecting
 }
@@ -251,18 +168,6 @@ void displayMediumPattern(){ //displays mediumPattern array
 void displayHardPattern(){ //displays hardPattern array
     clearSelectedSpaces();
     int matrixPos = -1;
-    // for(int i = 0; i < 8; i++){
-    //     for(int j = 0; j < 8; j++){
-    //         matrixPos++;
-    //         if(hLetter[i][j]){
-    //             strip.setPixelColor(matrixPos,red);
-    //             strip.show();
-    //         }
-    //     }
-    // }
-    // delay(1000);
-    // clearGrid();
-    // matrixPos = -1;
     for(int i = 0; i < 8; i++){
         for(int j = 0; j < 8; j++){
             matrixPos++;
@@ -273,10 +178,7 @@ void displayHardPattern(){ //displays hardPattern array
         }
     }
     delay(5000);
-    for(int i = 0; i < 64; i++){ //clears the pattern
-        strip.setPixelColor(i,off);
-        strip.show();
-    }
+    clearGrid();
     inGame = true; //player can now move
     finished = false; //player is not yet finished selecting
 }
@@ -528,8 +430,6 @@ void showResults(){
                 }
             }
         }
-        String stringScore = String(score);
-        Particle.publish("totalScore", stringScore);
         startNew = false;
         delay(5000);
     }
