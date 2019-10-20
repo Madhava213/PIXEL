@@ -4,9 +4,6 @@
  * where the snake moved constantly and the player
  * have to avoid intersections with itself and borders.
  * When the snake eats food it grows and speeds up a little bit.
- * 
- * 23 Jun 2016
- * by Sergey Royz and hunter Buzzell
  */
 
 #include <LedControl.h>
