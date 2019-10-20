@@ -8,7 +8,7 @@
 
 #include <LedControl.h>
 
-/* Joystick PINs */                                                                  (THIS PIN INFO IS iF WE ARE SING A JOYSTICK>>>>IF WE ARE USING BUTTONS, WE WILL BE USING A DIFFERENT PIN SETTING)
+/* Joystick PINs */                                                                  (THIS PIN INFO IS iF WE ARE USING A JOYSTICK>>>>IF WE ARE USING BUTTONS, WE WILL BE USING A DIFFERENT PIN SETTING)
 #define VRX     A0
 #define VRY     A1
 #define SW      2
