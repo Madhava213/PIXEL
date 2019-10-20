@@ -1,26 +1,19 @@
-/**
- * Snake
- * Implementation of the classical Snake game 
- * where the snake moved constantly and the player
- * have to avoid intersections with itself and borders.
- * When the snake eats food it grows and speeds up a little bit.
- */
+#include <Adafruit_NeoPixel.h>
 
-#include <LedControl.h>
+#define PIXEL_COUNT 64
+#define PIXEL_PIN 1
+#define PIXEL_TYPE (NEO_KHZ800 + NEO_RGB)
 
-/* Joystick PINs */
-#define VRX     A0
-#define VRY     A1
-#define SW      2
+Adafruit_NeoPixel strip(PIXEL_COUNT, PIXEL_PIN, PIXEL_TYPE);
 
-/* Display PINs */
-#define CLK     8
-#define CS      9
-#define DIN     10
+//joystick pins:
+#define VERT A0
+#define HORZ A1
+
+//button pin:
 
 #define SIZE    8
 #define ADVANCE_DELAY 20
-
 
 int snake[SIZE*SIZE][2];
 int length;
@@ -31,9 +24,6 @@ long prev_advance;
 int blink_count;
 const short messageSpeed = 5;
 
-
-
-LedControl lc = LedControl(DIN, CLK, CS, 1);
 
 void init_game() {
   prev_advance = current_time = 0;
@@ -127,6 +117,19 @@ void setup() {
   render();
 }
 
+void setup() {
+  pinMode(VERT, INPUT);
+  pinMode(HORZ, INPUT);
+  //attachInterrupt(digitalPinToInterrupt(SW), restart, RISING);
+
+  strip.begin();
+  strip.setBrightness(15);
+  
+  init_game();
+  render();
+
+}
+
 void loop() {
   if (!is_game_over) {
     clearScreen();
@@ -173,16 +176,6 @@ void readControls() {
 
 }
 
-const PROGMEM bool gameOverMessage[8][90] = {
-  {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-  {0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,1,1,1,1,0,0,0,1,1,0,0,0,1,1,0,0,1,1,1,1,1,1,0,0,0,0,0,0,0,1,1,1,1,0,0,0,1,1,0,0,1,1,0,0,1,1,1,1,1,1,0,0,1,1,1,1,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0},
-  {0,0,0,0,0,0,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,1,0,1,1,1,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,0,0,0,0,1,1,0,0,1,1,0,0,1,1,1,1,0,0,0,0,0,0,0,0},
-  {0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,1,1,0,0,1,1,0,0,1,1,1,1,1,1,1,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,0,0,0,0,1,1,0,0,1,1,0,0,1,1,1,1,0,0,0,0,0,0,0,0},
-  {0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,1,1,1,1,1,1,0,0,1,1,0,1,0,1,1,0,0,1,1,1,1,1,0,0,0,0,0,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,1,1,1,0,0,0,1,1,1,1,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0},
-  {0,0,0,0,0,0,0,0,1,1,0,1,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,0,1,1,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0},
-  {0,0,0,0,0,0,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,0,1,1,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,1,1,0,0,0,1,1,1,1,0,0,0,1,1,0,0,0,0,0,0,1,1,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-  {0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,1,1,0,0,1,1,0,0,1,1,0,0,0,1,1,0,0,1,1,1,1,1,1,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,1,1,0,0,0,0,1,1,1,1,1,1,0,0,1,1,0,0,1,1,0,0,0,1,1,0,0,0,0,0,0,0,0,0}
-}; 
 void showGameOverMessage() {
   for (int d = 0; d < sizeof(gameOverMessage[0]) - 7; d++) {
     for (int col = 0; col < 8; col++) {
