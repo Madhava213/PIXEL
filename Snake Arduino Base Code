@@ -72,7 +72,7 @@ void clearScreen() {
  * moves the snake forward
  * returns true if the game is over
  */
-bool advance() {
+bool advance() {                                                                            (WE WILL ALSO NEED TO CHAGE THE MESSAGE LENGTH AND THE DELAY ACCORDING TO OUR LED BOARD)
   int head[2] = {snake[0][0] + v[0], snake[0][1] + v[1]};
 
   if (head[0] < 0 || head[0] >= SIZE) {
@@ -155,8 +155,8 @@ void restart() {
   is_game_over = false;
 }
 
-void readControls() {
-  int dx = map(analogRead(VRX), 0, 906, 2, -2);
+void readControls() {                                                             (EVEN THIS PART IS WHERE ANALOG IS USED FOR JOYSTICK, IF WE ARE USING A BUTTON, WE NEED TO DEFINE A DIGITAL READ FUNCTION)
+  int dx = map(analogRead(VRX), 0, 906, 2, -2);                 (WE ALSO NEED TO DEFINE ANOTHER DIGITAL READ FUNTION WHERE THE RED BUTTON WE HAVE REDIRECTS THE CODE BACK TO THE RENDER FUNTION WHERE THE GAME RESTARTS)
   int dy = map(analogRead(VRY), 0, 906, -2, 2);
   if (dx != 0) {dx = dx / abs(dx);}
   if (dy != 0) {dy = dy / abs(dy);}
@@ -194,3 +194,4 @@ void showGameOverMessage() {
     }
   }
 }
+
