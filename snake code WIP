@@ -1,29 +1,51 @@
+//need to fix timing and food spawning
+
 #include <Adafruit_NeoPixel.h>
 
 #define PIXEL_COUNT 64
-#define PIXEL_PIN 1
+#define PIXEL_PIN 4
 #define PIXEL_TYPE (NEO_KHZ800 + NEO_RGB)
 
-Adafruit_NeoPixel strip(PIXEL_COUNT, PIXEL_PIN, PIXEL_TYPE);
+Adafruit_NeoPixel matrix(PIXEL_COUNT, PIXEL_PIN, PIXEL_TYPE);
+
+//LED colors:
+uint32_t off = matrix.Color(0, 0, 0);
+uint32_t white = matrix.Color(150, 150, 150);
+uint32_t red = matrix.Color(0, 150, 0);
+uint32_t green = matrix.Color(150, 0, 0);
 
 //joystick pins:
 #define VERT A0
 #define HORZ A1
 
 //button pin:
+#define BUTTON 2
 
 #define SIZE    8
-#define ADVANCE_DELAY 20
+#define ADVANCE_DELAY 500
+#define MESSAGE_SPEED 10
 
-int snake[SIZE*SIZE][2];
+int snake[SIZE * SIZE][2];
 int length;
 int food[2], v[2];
 bool is_game_over = false;
 long current_time;
 long prev_advance;
 int blink_count;
-const short messageSpeed = 5;
 
+
+void setup() {
+  pinMode(VERT, INPUT);
+  pinMode(HORZ, INPUT);
+  pinMode(BUTTON, INPUT_PULLUP);
+  matrix.begin();
+  matrix.setBrightness(1);
+  matrix.show();
+
+  init_game();
+  render();
+
+}
 
 void init_game() {
   prev_advance = current_time = 0;
@@ -32,8 +54,8 @@ void init_game() {
   length = SIZE / 3;
 
   for (int i = 0; i < length; i++) {
-      snake[i][0] = half - 1;
-      snake[i][1] = half + i;
+    snake[i][0] = half - 1;
+    snake[i][1] = half + i;
   }
 
   food[0] = half + 1;
@@ -44,146 +66,157 @@ void init_game() {
 }
 
 void render() {
+  int pos = 0;
   for (int i = 0; i < length; i++) {
-    lc.setLed(0, snake[i][0], snake[i][1], 1);
+    int row = snake[i][0];
+    int col = snake[i][1];
+    pos = (row * 8) + col;
+    matrix.setPixelColor(pos, green);
   }
-  lc.setLed(0, food[0], food[1], 1);
+  pos = (food[0] * 8) + food[1];
+  matrix.setPixelColor(pos, red);
 }
 
 void clearScreen() {
-  for (int x = 0; x < SIZE; x++) {
-    for (int y = 0; y < SIZE; y++) {
-      lc.setLed(0, x, y, 0);
-    }
+  for(int i = 0; i < 64; i++) {
+    matrix.setPixelColor(i, off);
   }
+  matrix.show();
 }
 
-/**
- * moves the snake forward
- * returns true if the game is over
- */
 bool advance() {
   int head[2] = {snake[0][0] + v[0], snake[0][1] + v[1]};
 
   if (head[0] < 0 || head[0] >= SIZE) {
 
-            delay(1000);
+    delay(1000);
     showGameOverMessage();
-      return true;
+    return true;
   }
 
   if (head[1] < 0 || head[1] >= SIZE) {
 
-            delay(1000);
+    delay(1000);
     showGameOverMessage();
-      return true;
+    return true;
   }
 
   for (int i = 0; i < length; i++) {
-      if (snake[i][0] == head[0] && snake[i][1] == head[1]) {
-            delay(1000);
-        showGameOverMessage();
-          return true;
-      }
+    if (snake[i][0] == head[0] && snake[i][1] == head[1]) {
+      delay(1000);
+      showGameOverMessage();
+      return true;
+    }
   }
 
   bool grow = (head[0] == food[0] && head[1] == food[1]);
   if (grow) {
-      length++;  
-      randomSeed(current_time);    
-      food[0] = random(SIZE);
-      food[1] = random(SIZE);
+    length++;
+    randomSeed(current_time);
+    food[0] = random(SIZE);
+    food[1] = random(SIZE);
   }
 
   for (int i = length - 1; i >= 0; i--) {
-      snake[i + 1][0] = snake[i][0];
-      snake[i + 1][1] = snake[i][1];
+    snake[i + 1][0] = snake[i][0];
+    snake[i + 1][1] = snake[i][1];
   }
   snake[0][0] += v[0];
   snake[0][1] += v[1];
   return false;
 }
 
-void setup() {
-  pinMode(SW, INPUT_PULLUP);
-  pinMode(VRX, INPUT);
-  pinMode(VRY, INPUT);
-  attachInterrupt(digitalPinToInterrupt(SW), restart, RISING);
-
-  lc.shutdown(0, false);
-  lc.setIntensity(0, 8);
-
-  init_game();
-  render();
+void readControls() {
+  int vertDir = analogRead(VERT);
+  int horzDir = analogRead(HORZ);
+  int sel = digitalRead(BUTTON);
+  if(sel) { //restart game
+    restart();
+  }
+  if(vertDir > 3500) {  //UP
+    v[0] = 0;
+    v[1] = 1;
+  }
+  else if(vertDir < 1000) { //DOWN
+    v[0] = 0;
+    v[1] = -1;
+  }
+  else if(horzDir > 3500) { //LEFT
+    v[0] = 1;
+    v[1] = 0;
+  }
+  else if(horzDir < 1000) { //RIGHT    
+    v[0] = -1;
+    v[1] = 0;
+  }
+  else {
+    v[0] = 0;
+    v[1] = 0;
+  }
 }
 
-void setup() {
-  pinMode(VERT, INPUT);
-  pinMode(HORZ, INPUT);
-  //attachInterrupt(digitalPinToInterrupt(SW), restart, RISING);
+bool gameOverMessage[8][90] = {
+  {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+  {0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,1,1,1,1,0,0,0,1,1,0,0,0,1,1,0,0,1,1,1,1,1,1,0,0,0,0,0,0,0,1,1,1,1,0,0,0,1,1,0,0,1,1,0,0,1,1,1,1,1,1,0,0,1,1,1,1,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0},
+  {0,0,0,0,0,0,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,1,0,1,1,1,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,0,0,0,0,1,1,0,0,1,1,0,0,0,1,1,0,0,0,0,0,0,0,0,0},
+  {0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,1,1,0,0,1,1,0,0,1,1,1,1,1,1,1,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,0,0,0,0,1,1,0,0,1,1,0,0,0,1,1,0,0,0,0,0,0,0,0,0},
+  {0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,1,1,1,1,1,1,0,0,1,1,0,1,0,1,1,0,0,1,1,1,1,1,0,0,0,0,0,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,1,1,1,0,0,0,1,1,1,1,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0},
+  {0,0,0,0,0,0,0,0,1,1,0,1,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,0,1,1,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0},
+  {0,0,0,0,0,0,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,0,1,1,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,1,1,0,0,0,1,1,1,1,0,0,0,1,1,0,0,0,0,0,0,1,1,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+  {0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,1,1,0,0,1,1,0,0,1,1,0,0,0,1,1,0,0,1,1,1,1,1,1,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,1,1,0,0,0,0,1,1,1,1,1,1,0,0,1,1,0,0,1,1,0,0,0,1,1,0,0,0,0,0,0,0,0,0}
+}; 
 
-  strip.begin();
-  strip.setBrightness(15);
-  
+void showGameOverMessage() {
+  int pos = 0;
+  for(int i = 0; i < 82; i++) {
+    pos = 0;
+    for(int row = 0; row < 8; row++) {
+      delay(MESSAGE_SPEED);
+      for(int col = 0; col < 8; col++) {
+        if(digitalRead(BUTTON)) { //start new game
+          restart();
+        }
+        else if(gameOverMessage[row][col + i]) {
+          matrix.setPixelColor(pos, white);
+        }
+        else {
+          matrix.setPixelColor(pos, off);
+        }
+        pos++;
+      }
+      matrix.show();
+    }
+  }
+}
+
+void restart() {
   init_game();
-  render();
-
+  is_game_over = false;
 }
 
 void loop() {
   if (!is_game_over) {
     clearScreen();
     render();
-
+    
     if (current_time - prev_advance > ADVANCE_DELAY) {
       is_game_over = advance();
-      prev_advance = current_time;    
+      prev_advance = current_time;
     }
   } else {
-    while (blink_count > 0) {
-      clearScreen();
-      delay(300);
-      render();
-      delay(300);
-      blink_count--;     
-         
+    if(digitalRead(BUTTON)) { //start a new game
+      restart();
+    }
+    else {
+      while (blink_count > 0) {
+        clearScreen();
+        delay(300);
+        render();
+        delay(300);
+        blink_count--;
+      }
     }
   }
   readControls();
   current_time++;
-}
-
-void restart() {  
-  init_game();
-  is_game_over = false;
-}
-
-void readControls() {
-  int dx = map(analogRead(VRX), 0, 906, 2, -2);
-  int dy = map(analogRead(VRY), 0, 906, -2, 2);
-  if (dx != 0) {dx = dx / abs(dx);}
-  if (dy != 0) {dy = dy / abs(dy);}
-
-  if (dy != 0 && v[0] != 0) {
-    v[0] = 0;
-    v[1] = dy;    
-  }
-
-  if (dx != 0 && v[1] != 0) {
-    v[0] = dx;
-    v[1] = 0;
-  }
-
-}
-
-void showGameOverMessage() {
-  for (int d = 0; d < sizeof(gameOverMessage[0]) - 7; d++) {
-    for (int col = 0; col < 8; col++) {
-      delay(messageSpeed);
-      for (int row = 0; row < 8; row++) {
-        // this reads the byte from the PROGMEM and displays it on the screen
-        lc.setLed(0, row, col, pgm_read_byte(&(gameOverMessage[row][col + d])));
-      }
-    }
-  }
 }
