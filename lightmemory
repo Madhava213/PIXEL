@@ -1,35 +1,32 @@
-#include <Adafruit_Neopixel.h>
+#include <Adafruit_NeoPixel.h>
 
-
-#define PIXEL_PIN D1
+#define PIXEL_PIN 4
 #define PIXEL_COUNT 64
 #define PIXEL_TYPE (NEO_KHZ800 + NEO_RGB)
 
-Adafruit_NeoPixel strip = Adafruit_NeoPixel(PIXEL_COUNT, PIXEL_PIN, PIXEL_TYPE);
+Adafruit_NeoPixel strip(PIXEL_COUNT, PIXEL_PIN, PIXEL_TYPE);
 /* Matrix pixels defined as:
-ROW 1: 0-7
-ROW 2: 8-15
-ROW 3: 16-23
-ROW 4: 24-31
-ROW 5: 32-39
-ROW 6: 40-47
-ROW 7: 48-55
-ROW 8: 56-63
+  ROW 1: 0-7
+  ROW 2: 8-15
+  ROW 3: 16-23
+  ROW 4: 24-31
+  ROW 5: 32-39
+  ROW 6: 40-47
+  ROW 7: 48-55
+  ROW 8: 56-63
 */
 
 //pixel colors:
-//order is g, r, b
-int white = strip.Color(150, 150, 150);
-int red  = strip.Color(0, 80, 4);
-int gold = strip.Color(50, 60, 5);
-int green = strip.Color(80, 0, 0);
-int blue = strip.Color(0, 0, 128);
-int purple = strip.Color(0, 150, 150);
-int off = strip.Color(0, 0, 0);
-int r = 250, g = 0, b = 0;
+uint32_t white = strip.Color(150, 150, 150);
+uint32_t red  = strip.Color(0, 80, 4);
+uint32_t gold = strip.Color(50, 60, 5);
+uint32_t green = strip.Color(80, 0, 0);
+uint32_t blue = strip.Color(0, 0, 128);
+uint32_t purple = strip.Color(0, 150, 150);
+uint32_t off = strip.Color(0, 0, 0);
+uint32_t r = 250, b = 0, g = 0;
 
-
-int score = 0; //we will keep this for a possible LED display
+int score = 0;
 
 //joystick pins:
 int vert = A0;
@@ -37,15 +34,15 @@ int horz = A1;
 //int sel = A2;
 
 //joystick values:
-const int MAX = 3600;
+const int MAX = 950;
 const int MIN = 50;
 
-int prevVert = 2000;
-int prevHorz = 2000;
+int prevVert = 500;
+int prevHorz = 500;
 
 //button:
-int button = A3;
-int prevButton = 4095; //prevButton starts at LOW
+int button = 2;
+int prevButton = LOW; //prevButton starts at LOW
 
 //timers:
 unsigned long long current_time = 0;
@@ -59,49 +56,49 @@ int pos = 35;
 bool selectedSpace[64] = {false};
 
 bool easyPattern[8][8] = { //HI
-    {0,0,0,0,0,0,0,0},
-    {1,0,0,1,0,1,1,1},
-    {1,0,0,1,0,0,1,0},
-    {1,1,1,1,0,0,1,0},
-    {1,0,0,1,0,0,1,0},
-    {1,0,0,1,0,0,1,0},
-    {1,0,0,1,0,1,1,1},
-    {0,0,0,0,0,0,0,0},
+  {0, 0, 0, 0, 0, 0, 0, 0},
+  {1, 0, 0, 1, 0, 1, 1, 1},
+  {1, 0, 0, 1, 0, 0, 1, 0},
+  {1, 1, 1, 1, 0, 0, 1, 0},
+  {1, 0, 0, 1, 0, 0, 1, 0},
+  {1, 0, 0, 1, 0, 0, 1, 0},
+  {1, 0, 0, 1, 0, 1, 1, 1},
+  {0, 0, 0, 0, 0, 0, 0, 0},
 };
 
 bool mediumPattern[8][8] = { //capital omega
-    {0,0,0,0,0,0,0,0},
-    {0,0,1,1,1,1,0,0},
-    {0,1,0,0,0,0,1,0},
-    {0,1,0,0,0,0,1,0},
-    {0,1,0,0,0,0,1,0},
-    {0,1,0,0,0,0,1,0},
-    {0,0,1,0,0,1,0,0},
-    {1,1,1,0,0,1,1,1},
+  {0, 0, 0, 0, 0, 0, 0, 0},
+  {0, 0, 1, 1, 1, 1, 0, 0},
+  {0, 1, 0, 0, 0, 0, 1, 0},
+  {0, 1, 0, 0, 0, 0, 1, 0},
+  {0, 1, 0, 0, 0, 0, 1, 0},
+  {0, 1, 0, 0, 0, 0, 1, 0},
+  {0, 0, 1, 0, 0, 1, 0, 0},
+  {1, 1, 1, 0, 0, 1, 1, 1},
 };
 
 bool hardPattern[8][8] = { //space invader alien
-    {0,1,0,0,0,0,1,0},
-    {0,0,1,0,0,1,0,0},
-    {0,1,1,1,1,1,1,0},
-    {1,1,0,1,1,0,1,1},
-    {1,1,1,1,1,1,1,1},
-    {1,0,1,1,1,1,0,1},
-    {0,0,1,0,0,1,0,0},
-    {0,1,1,0,0,1,1,0},
+  {0, 1, 0, 0, 0, 0, 1, 0},
+  {0, 0, 1, 0, 0, 1, 0, 0},
+  {0, 1, 1, 1, 1, 1, 1, 0},
+  {1, 1, 0, 1, 1, 0, 1, 1},
+  {1, 1, 1, 1, 1, 1, 1, 1},
+  {1, 0, 1, 1, 1, 1, 0, 1},
+  {0, 0, 1, 0, 0, 1, 0, 0},
+  {0, 1, 1, 0, 0, 1, 1, 0},
 };
 
 //for rainbow in endgame:
 int snakeMatrix[8][8] =
 {
-    {0,1,2,3,4,5,6,7},
-    {15,14,13,12,11,10,9,8},
-    {16,17,18,19,20,21,22,23},
-    {31,30,29,28,27,26,25,24},
-    {32,33,34,35,36,37,38,39},
-    {47,46,45,44,43,42,41,40},
-    {48,49,50,51,52,53,54,55},
-    {63,62,61,60,59,58,57,56},
+  {0, 1, 2, 3, 4, 5, 6, 7},
+  {15, 14, 13, 12, 11, 10, 9, 8},
+  {16, 17, 18, 19, 20, 21, 22, 23},
+  {31, 30, 29, 28, 27, 26, 25, 24},
+  {32, 33, 34, 35, 36, 37, 38, 39},
+  {47, 46, 45, 44, 43, 42, 41, 40},
+  {48, 49, 50, 51, 52, 53, 54, 55},
+  {63, 62, 61, 60, 59, 58, 57, 56},
 };
 
 //for detecting game status:
@@ -113,395 +110,402 @@ bool startNew = false;
 bool holdButton = false;
 
 void setup() {
-    pinMode(vert, INPUT);
-    pinMode(horz, INPUT);
-    
-    pinMode(button,INPUT);
-    
-    Serial.begin(9600);
-    
-    strip.begin();
-    strip.setBrightness(12);
-    strip.show();
-    
-    srand(millis());
+  pinMode(vert, INPUT);
+  pinMode(horz, INPUT);
+
+  pinMode(button, INPUT_PULLUP);
+
+  Serial.begin(9600);
+
+  strip.begin();
+  strip.setBrightness(12);
+  strip.show();
+
+  srand(millis());
 }
 
 //FUNCTIONS:
 //**********************************************//
-void displayEasyPattern(){ //displays easyPattern array
-    clearSelectedSpaces();
-    int matrixPos = -1;
-    for(int i = 0; i < 8; i++){
-        for(int j = 0; j < 8; j++){
-            matrixPos++;
-            if(easyPattern[i][j]){
-                strip.setPixelColor(matrixPos,purple);
-                strip.show();
-            }
-        }
+
+
+void clearSelectedSpaces() {
+  for (int i = 0; i < 64; i++) {
+    selectedSpace[i] = false;
+  }
+}
+
+void selectSpace(int pos) {
+  selectedSpace[pos] = !selectedSpace[pos]; //changes unselected to selected or previously selected to unselected
+}
+
+void seeSelectedSpaces() {
+  for (int i = 0; i < 64; i++) {
+    if (selectedSpace[i]) {
+      if (i == pos) {
+        strip.setPixelColor(i, white);
+      } else {
+        strip.setPixelColor(i, blue);
+        strip.show();
+      }
     }
-    delay(5000); //shorten time?
-    clearGrid();
-    inGame = true; //player can now move
-    finished = false; //player is not yet finished selecting
+  }
 }
 
-void displayMediumPattern(){ //displays mediumPattern array
-    clearSelectedSpaces();
-    int matrixPos = -1;
-    for(int i = 0; i < 8; i++){
-        for(int j = 0; j < 8; j++){
-            matrixPos++;
-            if(mediumPattern[i][j]){
-                strip.setPixelColor(matrixPos,purple);
-                strip.show();
-            }
-        }
+void endLevel() {
+  finished = true; //player can no longer move
+  selectedSpace[pos] = !selectedSpace[pos]; //resets pos back to original selection before click+hold
+  showResults();
+}
+
+void clearGrid() { //turns all lights off
+  for (int i = 0; i < 64; i++) {
+    strip.setPixelColor(i, off);
+    strip.show();
+  }
+}
+
+void displayEasyPattern() { //displays easyPattern array
+  clearSelectedSpaces();
+  int matrixPos = -1;
+  for (int i = 0; i < 8; i++) {
+    for (int j = 0; j < 8; j++) {
+      matrixPos++;
+      if (easyPattern[i][j]) {
+        strip.setPixelColor(matrixPos, purple);
+        strip.show();
+      }
     }
-    delay(5000);
-    clearGrid();
-    inGame = true; //player can now move
-    finished = false; //player is not yet finished selecting
+  }
+  delay(5000); //shorten time?
+  for (int i = 0; i < 64; i++) { //clears the pattern
+    strip.setPixelColor(i, off);
+    strip.show();
+  }
+  inGame = true; //player can now move
+  finished = false; //player is not yet finished selecting
 }
 
-void displayHardPattern(){ //displays hardPattern array
-    clearSelectedSpaces();
-    int matrixPos = -1;
-    for(int i = 0; i < 8; i++){
-        for(int j = 0; j < 8; j++){
-            matrixPos++;
-            if(hardPattern[i][j]){
-                strip.setPixelColor(matrixPos,purple);
-                strip.show();
-            }
-        }
+void displayMediumPattern() { //displays mediumPattern array
+  clearSelectedSpaces();
+  int matrixPos = -1;
+  for (int i = 0; i < 8; i++) {
+    for (int j = 0; j < 8; j++) {
+      matrixPos++;
+      if (mediumPattern[i][j]) {
+        strip.setPixelColor(matrixPos, purple);
+        strip.show();
+      }
     }
-    delay(5000);
-    clearGrid();
-    inGame = true; //player can now move
-    finished = false; //player is not yet finished selecting
+  }
+  delay(5000);
+  for (int i = 0; i < 64; i++) { //clears the pattern
+    strip.setPixelColor(i, off);
+    strip.show();
+  }
+  inGame = true; //player can now move
+  finished = false; //player is not yet finished selecting
 }
 
-void move(){
-    current_time = millis();
-    int curVert = analogRead(vert);
-    int curHorz = analogRead(horz);
-    int curButton = analogRead(button);
-    Serial.println(curButton);
-    if (curVert > MAX && prevVert < MAX) { //up
-        strip.setPixelColor(pos,off); 
-        pos -= 8;
-        if(pos < 0) { //if exceeds top row
-            pos = pos + 64;
-        }
-        seeSelectedSpaces(); //player sees spaces they select in blue
-        strip.setPixelColor(pos,white);        
+void displayHardPattern() { //displays hardPattern array
+  clearSelectedSpaces();
+  int matrixPos = -1;
+  for (int i = 0; i < 8; i++) {
+    for (int j = 0; j < 8; j++) {
+      matrixPos++;
+      if (hardPattern[i][j]) {
+        strip.setPixelColor(matrixPos, purple);
         strip.show();
-        moveTimer = current_time + 300;
-    } else if(curVert > MAX && prevVert > MAX && current_time > moveTimer){
-        strip.setPixelColor(pos,off); 
-        pos -= 8;
-        if(pos < 0) { //if exceeds top row
-            pos = pos + 64;
-        }
-        seeSelectedSpaces(); //player sees spaces they select in blue
-        strip.setPixelColor(pos,white);        
-        strip.show();
-        delay(150);
-
-
-    } else if (curVert < MIN && prevVert > MIN) { //down
-        strip.setPixelColor(pos,off); 
-        pos += 8;
-        if (pos > 63) { //if exceeds bottom row
-            pos = pos - 64;
-        }
-        seeSelectedSpaces(); //player sees spaces they select in blue
-        strip.setPixelColor(pos,white);   
-        strip.show();
-        moveTimer = current_time + 300;
-    } else if(curVert < MIN && prevVert < MIN && current_time > moveTimer){
-        strip.setPixelColor(pos,off); 
-        pos += 8;
-        if (pos > 63) { //if exceeds bottom row
-            pos = pos - 64;
-        }
-        seeSelectedSpaces(); //player sees spaces they select in blue
-        strip.setPixelColor(pos,white);   
-        strip.show();
-        delay(150);
-        
-        
-    } else if (curHorz > MAX && prevHorz < MAX) { //left
-        strip.setPixelColor(pos,off); 
-        if(pos == 0 || pos % 8 == 0){ //if exceeds 1st column
-            pos += 7;
-        } else {
-            pos--;
-        }
-        seeSelectedSpaces(); //player sees spaces they select in blue
-        strip.setPixelColor(pos,white);  
-        strip.show();
-        moveTimer = current_time + 300;
-    } else if (curHorz > MAX && prevHorz > MAX && current_time > moveTimer){
-        strip.setPixelColor(pos,off); 
-        if(pos == 0 || pos % 8 == 0){ //if exceeds 1st column
-            pos += 7;
-        } else {
-            pos--;
-        }
-        seeSelectedSpaces(); //player sees spaces they select in blue
-        strip.setPixelColor(pos,white);  
-        strip.show();
-        delay(150);
-        
-        
-    } else if (curHorz < MIN && prevHorz > MIN) { //right
-        strip.setPixelColor(pos,off); 
-        if(pos == 7 || pos % 8 == 7) { //if exceeds last column
-            pos -= 7;
-        } else {
-            pos++;
-        }
-        seeSelectedSpaces(); //player sees spaces they select in blue
-        strip.setPixelColor(pos,white);  
-        strip.show();
-        moveTimer = current_time + 300;
-    } else if (curHorz < MIN && prevHorz < MIN && current_time > moveTimer){
-        strip.setPixelColor(pos,off); 
-        if(pos == 7 || pos % 8 == 7) { //if exceeds last column
-            pos -= 7;
-        } else {
-            pos++;
-        }
-        seeSelectedSpaces(); //player sees spaces they select in blue
-        strip.setPixelColor(pos,white);  
-        strip.show();
-        delay(150);
-        
-        
-    } else if(curButton < 20 && prevButton >= 20){ //if player has just pushed button
-        selectSpace(pos); //selects the current position
-        buttonTimer = millis() + 1250;
-    } else if (curButton >= 20 && prevButton < 20){ //if player has just finished pushing button
-        strip.setPixelColor(pos,white);
-        strip.show();
-    } else if(curButton < 20 && current_time > buttonTimer){ //if player had been holding down button for 1.25s
-        finishCount++; 
-        endLevel(); //finishes level
-        holdButton = true;
-    } else { //if player has not moved joystick or pressed button
-        seeSelectedSpaces(); //player sees spaces they select
-        strip.setPixelColor(pos,white);  
-        strip.show();
+      }
     }
-    prevVert = curVert;
-    prevHorz = curHorz;
-    prevButton = curButton;
+  }
+  delay(5000);
+  for (int i = 0; i < 64; i++) { //clears the pattern
+    strip.setPixelColor(i, off);
+    strip.show();
+  }
+  inGame = true; //player can now move
+  finished = false; //player is not yet finished selecting
 }
 
-void selectSpace(int pos){
-    selectedSpace[pos] = !selectedSpace[pos]; //changes unselected to selected or previously selected to unselected
-}
-
-void seeSelectedSpaces(){
-    for(int i = 0; i < 64; i++){
-        if(selectedSpace[i]){
-            if(i == pos){
-                strip.setPixelColor(i,white);
-            } else {
-                strip.setPixelColor(i,blue);
-                strip.show();
-            }
-        }
+void move() {
+  current_time = millis();
+  int curVert = analogRead(vert);
+  int curHorz = analogRead(horz);
+  int curButton = !digitalRead(button);
+  if (curVert > MAX && prevVert < MAX) { //up
+    strip.setPixelColor(pos, off);
+    pos -= 8;
+    if (pos < 0) { //if exceeds top row
+      pos = pos + 64;
     }
-}
-
-void clearSelectedSpaces(){
-    for(int i = 0; i < 64; i++){
-        selectedSpace[i] = false;
+    seeSelectedSpaces(); //player sees spaces they select in blue
+    strip.setPixelColor(pos, white);
+    strip.show();
+    moveTimer = current_time + 300;
+  } else if (curVert > MAX && prevVert > MAX && current_time > moveTimer) {
+    strip.setPixelColor(pos, off);
+    pos -= 8;
+    if (pos < 0) { //if exceeds top row
+      pos = pos + 64;
     }
-}
+    seeSelectedSpaces(); //player sees spaces they select in blue
+    strip.setPixelColor(pos, white);
+    strip.show();
+    delay(150);
 
-void endLevel(){
-    finished = true; //player can no longer move
-    selectedSpace[pos] = !selectedSpace[pos]; //resets pos back to original selection before click+hold
-    showResults();
-}
 
-void clearGrid(){ //turns all lights off
-    for(int i = 0; i < 64; i++){
-        strip.setPixelColor(i,off);
-        strip.show();
+  } else if (curVert < MIN && prevVert > MIN) { //down
+    strip.setPixelColor(pos, off);
+    pos += 8;
+    if (pos > 63) { //if exceeds bottom row
+      pos = pos - 64;
     }
-}
-
-void showResults(){
-    int matrixPos = -1;
-    if(finishCount == 1){ //if player had just finished easyPattern
-        for(int i = 0; i < 8; i++){
-            for(int j = 0; j < 8; j++){
-                matrixPos++;
-                if(selectedSpace[matrixPos]){
-                    if(easyPattern[i][j]){ //if player selected and got it correct
-                        score += 50;
-                        strip.setPixelColor(matrixPos,green);
-                        strip.show();
-                    } else if(!easyPattern[i][j]){ //if player selected but got it incorrect
-                        score -= 25;
-                        strip.setPixelColor(matrixPos,red);
-                        strip.show();
-                        
-                    }
-                } else if(!selectedSpace[matrixPos]){ 
-                    if(easyPattern[i][j]){ //if player did not select a pattern light
-                        score -= 25;
-                        strip.setPixelColor(matrixPos,purple);
-                        strip.show();
-                        
-                    } else { //not selected nor in pattern
-                        strip.setPixelColor(matrixPos,off); //change color? as it is hard to see the results
-                        strip.show();
-                        
-                    }
-                }
-            }
-        }
-        delay(5000);
-    } else if(finishCount == 2){ //if player had just finished mediumPattern
-        for(int i = 0; i < 8; i++){
-            for(int j = 0; j < 8; j++){
-                matrixPos++;
-                if(selectedSpace[matrixPos]){
-                    if(mediumPattern[i][j]){ //if player selected and got it correct
-                        score += 50;
-                        strip.setPixelColor(matrixPos,green);
-                        strip.show();
-                        
-                    } else if(!mediumPattern[i][j]){ //if player selected but got it incorrect
-                        score -= 25;
-                        strip.setPixelColor(matrixPos,red);
-                        strip.show();
-                        
-                    }
-                } else if(!selectedSpace[matrixPos]){
-                    if(mediumPattern[i][j]){ //if player did not select a pattern light
-                        score -= 25;
-                        strip.setPixelColor(matrixPos,purple);
-                        strip.show();
-                        
-                    } else { //not selected nor in pattern
-                        strip.setPixelColor(matrixPos,off);
-                        strip.show();
-                        
-                    }
-                }
-            }
-        }
-        delay(5000);
-    } else if(finishCount == 3){ //if player had just finished hardPattern
-        for(int i = 0; i < 8; i++){
-            for(int j = 0; j < 8; j++){
-                matrixPos++;
-                if(selectedSpace[matrixPos]){
-                    if(hardPattern[i][j]){ //if player selected and got it correct
-                        score += 50;
-                        strip.setPixelColor(matrixPos,green);
-                        strip.show();
-                        
-                    } else if(!hardPattern[i][j]){ //if player selected but got it incorrect
-                        score -= 25;
-                        strip.setPixelColor(matrixPos,red);
-                        strip.show();
-                        
-                    }
-                } else if(!selectedSpace[matrixPos]){
-                    if(hardPattern[i][j]){ //if player did not select a pattern light
-                        score -= 25;
-                        strip.setPixelColor(matrixPos,purple);
-                        strip.show();
-                        
-                    } else { //not selected nor in pattern
-                        strip.setPixelColor(matrixPos,off);
-                        strip.show();
-                        
-                    }
-                }
-            }
-        }
-        startNew = false;
-        delay(5000);
+    seeSelectedSpaces(); //player sees spaces they select in blue
+    strip.setPixelColor(pos, white);
+    strip.show();
+    moveTimer = current_time + 300;
+  } else if (curVert < MIN && prevVert < MIN && current_time > moveTimer) {
+    strip.setPixelColor(pos, off);
+    pos += 8;
+    if (pos > 63) { //if exceeds bottom row
+      pos = pos - 64;
     }
-    inGame = false; //so next pattern can be displayed
+    seeSelectedSpaces(); //player sees spaces they select in blue
+    strip.setPixelColor(pos, white);
+    strip.show();
+    delay(150);
+
+
+  } else if (curHorz > MAX && prevHorz < MAX) { //left
+    strip.setPixelColor(pos, off);
+    if (pos == 0 || pos % 8 == 0) { //if exceeds 1st column
+      pos += 7;
+    } else {
+      pos--;
+    }
+    strip.setPixelColor(pos, white);
+    strip.show();
+    moveTimer = current_time + 300;
+  } else if (curHorz > MAX && prevHorz > MAX && current_time > moveTimer) {
+    strip.setPixelColor(pos, off);
+    if (pos == 0 || pos % 8 == 0) { //if exceeds 1st column
+      pos += 7;
+    } else {
+      pos--;
+    }
+    seeSelectedSpaces(); //player sees spaces they select in blue
+    strip.setPixelColor(pos, white);
+    strip.show();
+    delay(150);
+
+
+  } else if (curHorz < MIN && prevHorz > MIN) { //right
+    strip.setPixelColor(pos, off);
+    if (pos == 7 || pos % 8 == 7) { //if exceeds last column
+      pos -= 7;
+    } else {
+      pos++;
+    }
+    seeSelectedSpaces(); //player sees spaces they select in blue
+    strip.setPixelColor(pos, white);
+    strip.show();
+    moveTimer = current_time + 300;
+  } else if (curHorz < MIN && prevHorz < MIN && current_time > moveTimer) {
+    strip.setPixelColor(pos, off);
+    if (pos == 7 || pos % 8 == 7) { //if exceeds last column
+      pos -= 7;
+    } else {
+      pos++;
+    }
+    seeSelectedSpaces(); //player sees spaces they select in blue
+    strip.setPixelColor(pos, white);
+    strip.show();
+    delay(150);
+
+
+  } else if (curButton && !prevButton) { //if player has just pushed button
+    selectSpace(pos); //selects the current position
+    buttonTimer = millis() + 1250;
+  } else if (!curButton && prevButton) { //if player has just finished pushing button
+    strip.setPixelColor(pos, white);
+    strip.show();
+  } else if (curButton && current_time > buttonTimer) { //if player had been holding down button for 1.25s
+    finishCount++;
+    endLevel(); //finishes level
+    holdButton = true;
+  } else { //if player has not moved joystick or pressed button
+    seeSelectedSpaces(); //player sees spaces they select
+    strip.setPixelColor(pos, white);
+    strip.show();
+  }
+  prevVert = curVert;
+  prevHorz = curHorz;
+  prevButton = curButton;
 }
 
-void gameOver(){ //shows a cool pattern thing after they finish, then the button can be pressed to start over from easy 
-    Serial.println("gameOver");
-    for(int i = 0; i < 8; i++){
-        for(int j = 0; j < 8; j++){
-            int curButton = analogRead(button);
-            if(curButton < 20 && prevButton >= 20){
-                i = 8;
-                j = 8;
-                startNew = true;
-            }
-            strip.setPixelColor(snakeMatrix[i][j], r, g, b);
+void showResults() {
+  int matrixPos = -1;
+  if (finishCount == 1) { //if player had just finished easyPattern
+    for (int i = 0; i < 8; i++) {
+      for (int j = 0; j < 8; j++) {
+        matrixPos++;
+        if (selectedSpace[matrixPos]) {
+          if (easyPattern[i][j]) { //if player selected and got it correct
+            score += 50;
+            strip.setPixelColor(matrixPos, green);
             strip.show();
-            delay(50);
-            if(r == 250 && g != 250 && b == 0){
-                g+=10;
-            } else if(g == 250 && r != 0){
-                r-=10;
-            } else if(g == 250 && b != 250){
-                b+=10;
-            } else if(b == 250 && g != 0){
-                g-=10;
-            } else if(b == 250 && r != 250){
-                r+=10;
-            } else if(r == 250 && b != 0){
-                b-=10;
-            }
-            prevButton = curButton;
+          } else if (!easyPattern[i][j]) { //if player selected but got it incorrect
+            score -= 25;
+            strip.setPixelColor(matrixPos, red);
+            strip.show();
+
+          }
+        } else if (!selectedSpace[matrixPos]) {
+          if (easyPattern[i][j]) { //if player did not select a pattern light
+            score -= 25;
+            strip.setPixelColor(matrixPos, purple);
+            strip.show();
+
+          } else { //not selected nor in pattern
+            strip.setPixelColor(matrixPos, off); //change color? as it is hard to see the results
+            strip.show();
+
+          }
         }
+      }
     }
+    delay(5000);
+  } else if (finishCount == 2) { //if player had just finished mediumPattern
+    for (int i = 0; i < 8; i++) {
+      for (int j = 0; j < 8; j++) {
+        matrixPos++;
+        if (selectedSpace[matrixPos]) {
+          if (mediumPattern[i][j]) { //if player selected and got it correct
+            score += 50;
+            strip.setPixelColor(matrixPos, green);
+            strip.show();
+
+          } else if (!mediumPattern[i][j]) { //if player selected but got it incorrect
+            score -= 25;
+            strip.setPixelColor(matrixPos, red);
+            strip.show();
+
+          }
+        } else if (!selectedSpace[matrixPos]) {
+          if (mediumPattern[i][j]) { //if player did not select a pattern light
+            score -= 25;
+            strip.setPixelColor(matrixPos, purple);
+            strip.show();
+
+          } else { //not selected nor in pattern
+            strip.setPixelColor(matrixPos, off);
+            strip.show();
+
+          }
+        }
+      }
+    }
+    delay(5000);
+  } else if (finishCount == 3) { //if player had just finished hardPattern
+    for (int i = 0; i < 8; i++) {
+      for (int j = 0; j < 8; j++) {
+        matrixPos++;
+        if (selectedSpace[matrixPos]) {
+          if (hardPattern[i][j]) { //if player selected and got it correct
+            score += 50;
+            strip.setPixelColor(matrixPos, green);
+            strip.show();
+
+          } else if (!hardPattern[i][j]) { //if player selected but got it incorrect
+            score -= 25;
+            strip.setPixelColor(matrixPos, red);
+            strip.show();
+
+          }
+        } else if (!selectedSpace[matrixPos]) {
+          if (hardPattern[i][j]) { //if player did not select a pattern light
+            score -= 25;
+            strip.setPixelColor(matrixPos, purple);
+            strip.show();
+
+          } else { //not selected nor in pattern
+            strip.setPixelColor(matrixPos, off);
+            strip.show();
+
+          }
+        }
+      }
+    }
+    startNew = false;
+    delay(5000);
+  }
+  inGame = false; //so next pattern can be displayed
+}
+
+void gameOver() { //shows a cool pattern thing after they finish, then the button can be pressed to start over from easy
+  for (int i = 0; i < 8; i++) {
+    for (int j = 0; j < 8; j++) {
+      int curButton = analogRead(button);
+      if (curButton < 20 && prevButton >= 20) {
+        i = 8;
+        j = 8;
+        startNew = true;
+      }
+      strip.setPixelColor(snakeMatrix[i][j], g, r, b);
+      strip.show();
+      delay(50);
+      if (r == 250 && g != 250 && b == 0) {
+        g += 10;
+      } else if (g == 250 && r != 0) {
+        r -= 10;
+      } else if (g == 250 && b != 250) {
+        b += 10;
+      } else if (b == 250 && g != 0) {
+        g -= 10;
+      } else if (b == 250 && r != 250) {
+        r += 10;
+      } else if (r == 250 && b != 0) {
+        b -= 10;
+      }
+      prevButton = curButton;
+    }
+  }
 }
 
 void loop() {
-    Serial.println(analogRead(A3));
-    current_time = millis();
-    if(endGame){
-        if(startNew){
-            //resets all values
-            endGame = false;
-            inGame = false;
-            finishCount = 0;
-            score = 0;
-            pos = 35;
-            r = 250;
-            g = 0;
-            b = 0;
-        } else {
-           gameOver(); 
-        }
-    } else if(!inGame){
-        if(analogRead(button) < 20){ //if player presses button
-            clearGrid();
-            if(finishCount == 0){ 
-                displayEasyPattern();
-            } else if(finishCount == 1){
-                displayMediumPattern();
-            } else if(finishCount == 2){
-                displayHardPattern();
-            } else if(finishCount == 3){
-                gameOver();
-                endGame = true;
-            }
-        }
+  current_time = millis();
+  if (endGame) {
+    if (startNew) {
+      //resets all values
+      endGame = false;
+      inGame = false;
+      finishCount = 0;
+      score = 0;
+      pos = 35;
+      r = 250;
+      g = 0;
+      b = 0;
     } else {
-        if(!finished){
-            strip.setPixelColor(pos,white);
-            move();
-        }
+      gameOver();
     }
+  } else if (!inGame) {
+    if (!digitalRead(button)) { //if player presses button
+      clearGrid();
+      if (finishCount == 0) {
+        displayEasyPattern();
+      } else if (finishCount == 1) {
+        displayMediumPattern();
+      } else if (finishCount == 2) {
+        displayHardPattern();
+      } else if (finishCount == 3) {
+        gameOver();
+        endGame = true;
+      }
+    }
+  } else {
+    if (!finished) {
+      strip.setPixelColor(pos, white);
+      move();
+    }
+  }
 }
